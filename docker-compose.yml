@@ -73,7 +73,8 @@ services:
       - .:/app
       - ./discoveries:/app/discoveries
     environment:
-      - PYTHONUNBUFFERED=1
+      - KAFKA_BOOTSTRAP_SERVER=kafka:29092
+      - MONGO_URI=mongodb://mongo:27017/
     deploy:
       resources:
         reservations:
@@ -91,6 +92,31 @@ services:
     env_file: .env
     volumes:
       - .:/app
+    environment:
+      - KAFKA_BOOTSTRAP_SERVER=kafka:29092
+
+  dashboard:
+    build: .
+    command: ["uvicorn", "dashboard:app", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./discoveries:/app/discoveries:ro
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/
+      - DB_NAME=lab_discovery_db
+      - COLLECTION_NAME=shapes_found
+      - PROMETHEUS_URL=http://prometheus:9090
+      - STORAGE_PATH=/app/discoveries
+    healthcheck:
+      test: curl -f http://localhost:8080/api/health || exit 1
+      interval: 10s
+      retries: 5
+      start_period: 10s
 
 volumes:
   mongo_data:

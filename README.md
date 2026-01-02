@@ -1,8 +1,8 @@
-<![CDATA[<div align="center">
+<div align="center">
 
-# Kafka ML Inference Pipeline
+# Velox
 
-**A real-time machine learning inference system for streaming image classification**
+**Distributed Real-Time Inference Pipeline for High-Frequency Data Streams**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
@@ -46,33 +46,35 @@ This project implements a **production-ready, real-time image classification pip
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           KAFKA ML INFERENCE PIPELINE                        │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                            KAFKA ML INFERENCE PIPELINE                           │
+└──────────────────────────────────────────────────────────────────────────────────┘
 
-┌──────────────┐      ┌──────────────┐      ┌──────────────────────────────────┐
-│              │      │              │      │            CONSUMER              │
-│   PRODUCER   │─────▶│    KAFKA     │─────▶│  ┌────────────┐  ┌────────────┐  │
-│              │      │              │      │  │  Fetcher   │  │  Inference │  │
-│ Synthetic    │      │  Message     │      │  │  Process   │─▶│  Process   │  │
-│ Image Gen    │      │  Broker      │      │  │            │  │  (GPU)     │  │
-└──────────────┘      └──────────────┘      │  └────────────┘  └─────┬──────┘  │
-                                            └────────────────────────┼─────────┘
-                                                                     │
-                      ┌──────────────┐      ┌──────────────┐         │
-                      │              │      │              │         │
-                      │   GRAFANA    │◀─────│  PROMETHEUS  │◀────────┤
-                      │              │      │              │         │
-                      │  Dashboards  │      │   Metrics    │         │
-                      └──────────────┘      └──────────────┘         │
-                                                                     │
-                                            ┌──────────────┐         │
-                                            │              │         │
-                                            │   MONGODB    │◀────────┘
+┌──────────────┐      ┌──────────────┐      ┌──────────────────────────────────────┐
+│              │      │              │      │               CONSUMER               │
+│  PRODUCER    │ ---> │    KAFKA     │ ---> │  ┌────────────┐      ┌────────────┐  │
+│              │      │              │      │  │  Fetcher   │      │ Inference  │  │
+│  Synthetic   │      │  Message     │      │  │  Process   │ ---> |  Process   │  │
+│  Image Gen   │      │  Broker      │      │  │            │      │   (GPU)    │  │
+└──────────────┘      └──────────────┘      │  └────────────┘      └─────┬──────┘  │
+                                            └────────────────────────────|─────────┘
+                                                                         |
+                      ┌──────────────┐      ┌──────────────┐             |
+                      │              │      │              │             |
+                      │   GRAFANA    │ <--- │  PROMETHEUS  │ <-----------+
+                      │              │      │              │
+                      │  Dashboards  │      │   Metrics    │
+                      └──────────────┘      └──────────────┘             |
+                                                                         |
+                                            ┌──────────────┐             |
+                                            │              │             |
+                                            │   MONGODB    │ <-----------+
                                             │              │
                                             │  Detection   │
                                             │  Storage     │
                                             └──────────────┘
+
+
 ```
 
 ### Components
@@ -454,4 +456,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [Request Feature](https://github.com/atharva-m/kafka-ml-inference-pipeline/issues)
 
 </div>
-]]>

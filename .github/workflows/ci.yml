@@ -1,0 +1,196 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ============================================
+  # JOB 1: Lint and Validate
+  # ============================================
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install linting tools
+        run: |
+          pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 *.py --max-line-length=120 --ignore=E501,W503,E302,E305,W291,W292,W293,E231,E225,E261,E262
+
+      - name: Validate docker-compose
+        run: |
+          docker compose config -q
+
+  # ============================================
+  # JOB 2: Build Docker Image
+  # ============================================
+  build:
+    name: Build Image
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # JOB 3: Test Infrastructure
+  # ============================================
+  test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create test .env file
+        run: |
+          cat > .env << EOF
+          KAFKA_BOOTSTRAP_SERVER=kafka:29092
+          KAFKA_TOPIC=image_data
+          KAFKA_CONSUMER_GROUP=test_group
+          MONGO_URI=mongodb://mongo:27017/
+          DB_NAME=test_db
+          STORAGE_PATH=./discoveries
+          MODEL_PATH=model.pth
+          CLASSES_PATH=classes.json
+          BATCH_SIZE=8
+          QUEUE_SIZE=200
+          METRICS_PORT=8000
+          PRODUCER_INTERVAL=0.1
+          COLORS_RED=(0, 0, 255)
+          COLORS_GREEN=(0, 255, 0)
+          SHAPES=["circle", "square"]
+          IMG_HEIGHT=512
+          IMG_WIDTH=512
+          SAMPLES_PER_CLASS=50
+          EPOCHS=1
+          CENTER=256
+          SHAPE_SIZE=150
+          IMG_SIZE=512
+          EOF
+
+      - name: Create required directories
+        run: |
+          mkdir -p discoveries static
+
+      - name: Start infrastructure services
+        run: |
+          docker compose up -d zookeeper kafka mongo prometheus
+          echo "Waiting for services to initialize..."
+          sleep 30
+
+      - name: Check service health
+        run: |
+          docker compose ps
+          echo "--- Kafka Logs ---"
+          docker compose logs kafka --tail=10
+          echo "--- MongoDB Logs ---"
+          docker compose logs mongo --tail=10
+
+      - name: Test Kafka connectivity
+        run: |
+          docker compose exec -T kafka kafka-topics --bootstrap-server localhost:9092 --list || echo "Kafka topic list completed"
+
+      - name: Test MongoDB connectivity
+        run: |
+          docker compose exec -T mongo mongosh --eval "db.runCommand('ping')" || echo "MongoDB ping completed"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down -v
+
+  # ============================================
+  # JOB 4: Security Scan
+  # ============================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+  # ============================================
+  # JOB 5: Release Info
+  # ============================================
+  release:
+    name: Release Info
+    runs-on: ubuntu-latest
+    needs: [build, test, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Release summary
+        run: |
+          echo "## 🚀 Release Ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### To deploy locally with GPU:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker compose up -d" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

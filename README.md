@@ -4,10 +4,13 @@
 
 **Distributed Real-Time Inference Pipeline for High-Frequency Data Streams**
 
+[![CI/CD](https://github.com/atharva-m/Velox/actions/workflows/ci.yml/badge.svg)](https://github.com/atharva-m/Velox/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.4.0-black.svg)](https://kafka.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Security: Trivy](https://img.shields.io/badge/security-trivy-blue)](https://github.com/aquasecurity/trivy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [Overview](#overview) •
@@ -15,6 +18,7 @@
 [Quick Start](#quick-start) •
 [Configuration](#configuration) •
 [Monitoring](#monitoring) •
+[CI/CD](#cicd) •
 [Contributing](#contributing)
 
 </div>
@@ -33,6 +37,7 @@ This project implements a **production-ready, real-time image classification pip
 - **Containerized** — Fully Dockerized with health checks and dependency management
 - **Configurable** — Environment-based configuration for all components
 - **Persistent Storage** — MongoDB integration for storing detection results
+- **CI/CD Ready** — Automated testing, linting, and Docker image builds
 
 ### Use Cases
 
@@ -101,8 +106,8 @@ This project implements a **production-ready, real-time image classification pip
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/atharva-m/kafka-ml-inference-pipeline.git
-cd kafka-ml-inference-pipeline
+git clone https://github.com/atharva-m/Velox.git
+cd Velox
 ```
 
 The default configuration works out of the box for local development.
@@ -228,7 +233,7 @@ Available metrics:
 Access Grafana at [http://localhost:3000](http://localhost:3000)
 
 Default credentials:
-- **Username:** `admin`
+- **atharva-m:** `admin`
 - **Password:** `admin`
 
 #### Setting Up a Dashboard
@@ -247,20 +252,71 @@ rate(target_shapes_found[1m]) * 60
 
 ---
 
+## CI/CD
+
+This project uses **GitHub Actions** for continuous integration and delivery.
+
+### Pipeline Overview
+
+| Job | Description |
+|-----|-------------|
+| **Lint & Validate** | Runs flake8 linting and validates docker-compose configuration |
+| **Build Image** | Builds Docker image and pushes to GitHub Container Registry |
+| **Integration Tests** | Starts infrastructure services and tests connectivity |
+| **Security Scan** | Scans for vulnerabilities using Trivy |
+| **Release Info** | Generates release summary on successful builds |
+
+### Workflow Triggers
+
+- **Push to `main`/`master`** — Full pipeline with image push
+- **Pull Requests** — Lint, build (no push), and test
+
+### Using the Pre-built Image
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/atharva-m/Velox:latest
+
+# Or use a specific commit
+docker pull ghcr.io/atharva-m/Velox:sha-abc1234
+```
+
+### Local Development with CI Checks
+
+Run the same checks locally before pushing:
+
+```bash
+# Install linting tools
+pip install flake8
+
+# Run linter
+flake8 . --count --max-line-length=120 --extend-ignore=E203 --statistics
+
+# Validate docker-compose
+docker compose config -q
+```
+
+---
+
 ## Project Structure
 
 ```
 kafka-ml-inference-pipeline/
-├── consumer.py          # Multi-process inference consumer
-├── producer.py          # Synthetic image generator
-├── train.py             # Model training script
-├── start.sh             # Container entrypoint script
-├── docker-compose.yml   # Service orchestration
-├── Dockerfile           # Container image definition
-├── prometheus.yml       # Prometheus configuration
-├── requirements.txt     # Python dependencies
-├── .env                 # Environment configuration
-└── discoveries/         # Saved detection images
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # CI/CD pipeline configuration
+├── consumer.py              # Multi-process inference consumer
+├── producer.py              # Synthetic image generator
+├── train.py                 # Model training script
+├── start.sh                 # Container entrypoint script
+├── docker-compose.yml       # Service orchestration
+├── Dockerfile               # Container image definition
+├── prometheus.yml           # Prometheus configuration
+├── requirements.txt         # Python dependencies
+├── .env                     # Environment configuration
+├── .gitignore               # Git ignore rules
+├── .dockerignore            # Docker ignore rules
+└── discoveries/             # Saved detection images
 ```
 
 ---
@@ -440,6 +496,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+### Code Quality
+
+This project uses automated CI checks. Before submitting a PR:
+
+```bash
+# Run linter
+flake8 . --count --max-line-length=120 --extend-ignore=E203 --statistics
+
+# Validate docker-compose
+docker compose config -q
+```
+
 ---
 
 ## License
@@ -452,7 +520,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ using PyTorch, Kafka, and Docker**
 
-[Report Bug](https://github.com/atharva-m/kafka-ml-inference-pipeline/issues) •
-[Request Feature](https://github.com/atharva-m/kafka-ml-inference-pipeline/issues)
+[Report Bug](https://github.com/atharva-m/Velox/issues) •
+[Request Feature](https://github.com/atharva-m/Velox/issues)
 
 </div>

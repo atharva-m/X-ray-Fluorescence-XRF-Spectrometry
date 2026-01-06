@@ -14,7 +14,7 @@
 [![Security: Trivy](https://img.shields.io/badge/security-trivy-blue)](https://github.com/aquasecurity/trivy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Overview](#overview) | [Performance](#performance) | [Architecture](#architecture) | [Quick Start](#quick-start) | [Kubernetes Deployment](#kubernetes-deployment) | [GPU Configuration](#gpu-configuration) | [Monitoring](#monitoring) | [Contributing](#contributing)
+[Overview](#overview) | [Performance](#performance) | [Architecture](#architecture) | [Quick Start](#quick-start) | [Kubernetes Deployment](#kubernetes-deployment) | [GPU Configuration](#gpu-configuration) | [Monitoring](#monitoring) | [CI/CD](#cicd) | [Contributing](#contributing)
 
 </div>
 
